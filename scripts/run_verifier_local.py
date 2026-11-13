@@ -25,7 +25,10 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         app, logs = Path(tmp) / "app", Path(tmp) / "logs"
         app.mkdir()
-        if args.oracle:
+        if args.oracle and (args.task_dir / "solution" / "model.py").exists():
+            (app / "model.py").write_text((args.task_dir / "solution" / "model.py").read_text())
+            subprocess.run([sys.executable, "model.py"], cwd=app, check=True)
+        elif args.oracle:
             solve = (args.task_dir / "solution" / "solve.sh").read_text()
             body = re.search(r"<<'EOF'\n(.*)\nEOF", solve, re.S).group(1)
             (app / "answer.json").write_text(body)

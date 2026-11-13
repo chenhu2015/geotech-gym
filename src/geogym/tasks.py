@@ -460,8 +460,13 @@ def verify_t3(spec: dict, meta: dict, answer: dict) -> dict:
     return out
 
 
+def _t0():
+    from .fea.problems import make_t0, verify_t0
+    return make_t0, verify_t0
+
+
 FAMILIES = {"t1-check": (make_t1, verify_t1), "t2-design": (make_t2, verify_t2),
-            "t3-backanalysis": (make_t3, verify_t3)}
+            "t3-backanalysis": (make_t3, verify_t3), "t0-fea": _t0()}
 
 
 def dump(task: Task) -> str:
