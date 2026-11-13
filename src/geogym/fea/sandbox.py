@@ -86,15 +86,42 @@ _REPLAY_BOOT = textwrap.dedent(r'''
                 getattr(ops, name)(*args, **kwargs)
             else:
                 out["skipped"][name] = out["skipped"].get(name, 0) + 1
+        mode = json.loads(sys.argv[5])
         ops.constraints("Transformation")
         ops.numberer("RCM")
         ops.system("UmfPack")
-        ops.test("NormDispIncr", 1e-10, 10)
-        ops.algorithm("Linear")
-        ops.integrator("LoadControl", 1.0)
-        ops.analysis("Static")
-        if ops.analyze(1) != 0:
-            out["status"] = "analysis failed"
+        if mode["type"] == "linear":
+            ops.test("NormDispIncr", 1e-10, 10)
+            ops.algorithm("Linear")
+            ops.integrator("LoadControl", 1.0)
+            ops.analysis("Static")
+            if ops.analyze(1) != 0:
+                out["status"] = "analysis failed"
+        else:
+            # Incremental nonlinear analysis to pseudo-time 1, cutting the step when Newton fails.
+            ops.test("NormDispIncr", 1e-8, 60)
+            ops.algorithm("Newton")
+            ops.analysis("Static")
+            dt, t = 1.0 / mode["steps"], 0.0
+            hist = []
+            rn = [int(n) for n in mode["reaction_nodes"]]
+            dof = int(mode["dof"])
+            while t < 1.0 - 1e-12:
+                h = min(dt, 1.0 - t)
+                ok = -1
+                for _ in range(6):
+                    ops.integrator("LoadControl", h)
+                    ok = ops.analyze(1)
+                    if ok == 0:
+                        break
+                    h /= 4.0
+                if ok != 0:
+                    out["status"] = f"analysis failed at pseudo-time {t:.4f}"
+                    break
+                t += h
+                ops.reactions()
+                hist.append([t, sum(ops.nodeReaction(n, dof) for n in rn)])
+            out["reaction_history"] = hist
         tags = ops.getNodeTags()
         out["n_nodes"] = len(tags)
         out["n_elements"] = len(ops.getEleTags())
@@ -128,7 +155,12 @@ def record(script: Path, workdir: Path, timeout: float = 600.0) -> dict:
     return data
 
 
-def replay(recorded: dict, query_nodes: list[int], workdir: Path, timeout: float = 600.0) -> dict:
+def replay(recorded: dict, query_nodes: list[int], workdir: Path, timeout: float = 600.0,
+           mode: dict | None = None) -> dict:
+    """``mode``: {"type": "linear"} (default) or {"type": "incremental", "steps": N,
+    "reaction_nodes": [...], "dof": d} for path-dependent (plastic) models; the latter records the
+    summed reaction of ``reaction_nodes`` in direction ``dof`` after every step."""
+    mode = mode or {"type": "linear"}
     workdir = Path(workdir)
     rec_path = workdir / "_geogym_rec.json"
     out = workdir / "_geogym_replay.json"
@@ -137,7 +169,7 @@ def replay(recorded: dict, query_nodes: list[int], workdir: Path, timeout: float
     boot.write_text(_REPLAY_BOOT)
     try:
         subprocess.run([sys.executable, str(boot), str(rec_path), str(out), json.dumps(sorted(DEFINE)),
-                        json.dumps([int(q) for q in query_nodes])],
+                        json.dumps([int(q) for q in query_nodes]), json.dumps(mode)],
                        cwd=workdir, timeout=timeout, capture_output=True)
     except subprocess.TimeoutExpired:
         return {"status": "replay timed out"}

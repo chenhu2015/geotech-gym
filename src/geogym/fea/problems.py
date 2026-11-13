@@ -51,7 +51,8 @@ RULES = """**Modeling rules.**
 - Apply all loads in load patterns with a `Linear` (or `Constant`) time series so that the full load
   acts at pseudo-time 1. Define the model fully in the script; you may run any analysis you like.
 - The grader re-runs your script, keeps only the **model definition** (nodes, elements, materials,
-  boundary conditions, constraints, loads), solves it with its own linear static analysis, and
+  boundary conditions, constraints, loads), solves it with its own analysis (linear static unless
+  stated otherwise below), and
   reads the displacements of the nodes you name below. Numbers you compute outside the model do not
   count. Keep the model under 200,000 nodes; the script must finish within 10 minutes.
 """
@@ -255,6 +256,8 @@ def _oracle_annulus(a, b, e, nu, inner_pressure, outer, n_theta=48, n_r=60) -> s
 
 
 def verify_t0(spec: dict, meta: dict, answer: dict, app_dir: str | Path | None = None) -> dict:
+    if spec["problem"] == "strip-footing":
+        return verify_footing(spec, meta, answer, app_dir)
     out = {"flags": [], "quantities": {}}
     script = Path(app_dir) / "model.py" if app_dir is not None else None
     try:
@@ -320,9 +323,192 @@ def verify_t0(spec: dict, meta: dict, answer: dict, app_dir: str | Path | None =
     return out
 
 
-MAKERS = {"thick-cylinder": make_thick_cylinder, "circular-hole": make_circular_hole}
+# ---------------------------------------------------------------------------------------------
+# strip footing on undrained clay (Prandtl): elastic-plastic, displacement controlled
+# ---------------------------------------------------------------------------------------------
+
+PRANDTL = 2.0 + np.pi
+FOOT_FULL, FOOT_ZERO = 0.03, 0.10   # plastic limit loads: FE overestimates by a few percent at best
+REPLAY_STEPS = 200
+
+
+def make_strip_footing(seed: int) -> FeaTask:
+    rng = np.random.default_rng(50_000 + seed)
+    b = float(np.round(rng.uniform(1.0, 4.0), 2))
+    su = float(np.round(rng.uniform(20.0, 150.0), 0))
+    e = float(np.round(su * rng.uniform(300.0, 800.0), -2))   # typical E_u / s_u for clays
+    nu = 0.49
+    spec = {"problem": "strip-footing", "footing_width": b, "undrained_strength": su,
+            "youngs_modulus": e, "poisson_ratio": nu}
+    instruction = f"""# FEA: bearing capacity of a strip footing on clay
+
+A rigid, smooth strip footing of width B = {b} m rests on the surface of a deep, homogeneous layer
+of saturated clay loaded quickly (undrained). Model the clay as elastic-perfectly plastic with a
+von Mises (J2) yield surface calibrated so that its yield stress in pure shear equals the undrained
+shear strength s_u = {su} kPa; undrained Young's modulus {e:.4g} kPa, Poisson's ratio {nu}. Ignore
+the self-weight of the clay (weightless soil, no surcharge). Plane strain.
+
+Compute, with a finite-element model, the **ultimate bearing pressure** q_ult of the footing
+(average vertical contact pressure at collapse).
+
+{RULES}- This is a path-dependent problem. Load the footing by **prescribing its vertical
+  displacement** (e.g. `ops.sp(node, 2, -delta)` in a `Linear` load pattern) on every footing node,
+  with a total settlement large enough to reach collapse. The grader replays your model definition
+  with its own incremental Newton analysis ({REPLAY_STEPS} steps to pseudo-time 1, with step cutting)
+  and sums the vertical reactions of the footing nodes you list.
+- You may model half of the problem using symmetry.
+
+**Deliverable.** `/app/model.py` and `/app/answer.json`:
+
+```json
+{{"footing_nodes": [1, 2, 3], "half_model": true, "q_ult": 250.0}}
+```
+
+`footing_nodes`: tags of all nodes under the footing (the nodes whose displacement you prescribe);
+`half_model`: whether the model covers half the footing width; `q_ult`: the ultimate bearing
+pressure from your analysis (kPa, positive in compression).
+"""
+    meta = {"q_exact": PRANDTL * su}
+    oracle = _oracle_footing(b, su, e, nu)
+    return FeaTask("t0-fea", f"t0-foot-{seed:05d}", spec, instruction, meta, {}, oracle)
+
+
+def _oracle_footing(b, su, e, nu, nf=20, ratio=1.1, extent=5.0) -> str:
+    return textwrap.dedent(f'''\
+        """Oracle: half model, smooth rigid footing by prescribed settlement, bbarQuad + J2."""
+        import json
+        import numpy as np
+        import openseespy.opensees as ops
+
+        B, su, E, nu = {b!r}, {su!r}, {e!r}, {nu!r}
+        nf, ratio, extent = {nf}, {ratio}, {extent}
+        h = B / 2 / nf
+        xs = list(np.linspace(0.0, B / 2, nf + 1)); dx = h
+        while xs[-1] < extent * B:
+            dx *= ratio; xs.append(xs[-1] + dx)
+        ys = [0.0]; dy = h
+        while ys[-1] < extent * B:
+            dy *= ratio; ys.append(ys[-1] + dy)
+        ys = sorted(-np.array(ys))
+        nx, ny = len(xs) - 1, len(ys) - 1
+        tag = lambda i, j: 1 + j * (nx + 1) + i
+
+        ops.wipe()
+        ops.model("basic", "-ndm", 2, "-ndf", 2)
+        for j, y in enumerate(ys):
+            for i, x in enumerate(xs):
+                ops.node(tag(i, j), float(x), float(y))
+        K, G = E / (3 * (1 - 2 * nu)), E / (2 * (1 + nu))
+        sy = np.sqrt(3.0) * su          # von Mises: shear yield = sy / sqrt(3) = su
+        ops.nDMaterial("J2Plasticity", 1, K, G, sy, sy, 0.0, 0.0)
+        e = 0
+        for j in range(ny):
+            for i in range(nx):
+                e += 1
+                ops.element("bbarQuad", e, tag(i, j), tag(i + 1, j), tag(i + 1, j + 1), tag(i, j + 1), 1.0, 1)
+        for i in range(nx + 1):
+            ops.fix(tag(i, 0), 1, 1)                    # base
+        for j in range(1, ny + 1):
+            ops.fix(tag(0, j), 1, 0)                    # symmetry plane
+            ops.fix(tag(nx, j), 1, 0)                   # far boundary
+        foot = [tag(i, ny) for i in range(nf + 1)]
+        delta = max(0.03, 25.0 * su / E) * B           # enough settlement to reach collapse
+        ops.timeSeries("Linear", 1)
+        ops.pattern("Plain", 1, 1)
+        for n in foot:
+            ops.sp(n, 2, -delta)
+
+        ops.constraints("Transformation"); ops.numberer("RCM"); ops.system("UmfPack")
+        ops.test("NormDispIncr", 1e-8, 60); ops.algorithm("Newton"); ops.analysis("Static")
+        q = 0.0
+        steps = 200
+        ops.integrator("LoadControl", 1.0 / steps)
+        for _ in range(steps):
+            if ops.analyze(1) != 0:
+                break
+            ops.reactions()
+            q = max(q, abs(sum(ops.nodeReaction(n, 2) for n in foot)) / (B / 2))
+        json.dump({{"footing_nodes": foot, "half_model": True, "q_ult": q}}, open("answer.json", "w"))
+        ''')
+
+
+def verify_footing(spec: dict, meta: dict, answer: dict, app_dir) -> dict:
+    out = {"flags": [], "q_exact": meta["q_exact"]}
+    script = Path(app_dir) / "model.py" if app_dir is not None else None
+    try:
+        nodes = [int(n) for n in answer["footing_nodes"]]
+        half = bool(answer["half_model"])
+        claimed = float(answer["q_ult"])
+    except (KeyError, TypeError, ValueError):
+        out.update(reward=0.0, flags=["malformed answer"])
+        return out
+    if not nodes:
+        out.update(reward=0.0, flags=["no footing nodes"])
+        return out
+    if script is None or not script.exists():
+        out.update(reward=0.0, flags=["no /app/model.py"])
+        return out
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp)
+        (work / "model.py").write_text(script.read_text())
+        rec = record(work / "model.py", work)
+        out["script_status"] = rec["status"]
+        if not rec["calls"]:
+            out.update(reward=0.0, flags=["script issued no OpenSeesPy calls"])
+            return out
+        rep = replay(rec, nodes, work, timeout=900.0,
+                     mode={"type": "incremental", "steps": REPLAY_STEPS, "reaction_nodes": nodes, "dof": 2})
+    out["replay_status"] = rep.get("status")
+    out["n_nodes"] = rep.get("n_nodes")
+    hist = rep.get("reaction_history") or []
+    if rep.get("status") != "ok" and not hist:
+        out.update(reward=0.0, flags=[f"model could not be solved: {rep.get('status')}"])
+        return out
+    if rep.get("status") != "ok":
+        out["flags"].append(f"replay stopped early ({rep.get('status')}); using the load reached")
+    if (rep.get("n_nodes") or 0) > MAX_NODES:
+        out.update(reward=0.0, flags=["model exceeds the node limit"])
+        return out
+
+    # Footing geometry check: listed nodes lie on one horizontal line and span the footing width.
+    b = spec["footing_width"]
+    coords = [rep["nodes"].get(str(n), {}).get("coord") for n in nodes]
+    if any(c is None for c in coords):
+        out.update(reward=0.0, flags=["footing node not in the model"])
+        return out
+    xs = np.array([c[0] for c in coords])
+    ys = np.array([c[1] for c in coords])
+    width = b / 2 if half else b
+    span = xs.max() - xs.min()
+    if np.ptp(ys) > 1e-6 * max(1.0, b) or abs(span - width) > 0.01 * width:
+        out.update(reward=0.0, flags=["footing nodes do not form the footing base of the stated width"])
+        return out
+
+    q_fe = max(abs(f) for _, f in hist) / width
+    exact = meta["q_exact"]
+    err = abs(q_fe - exact) / exact
+    if len(hist) >= 10:
+        tail = [abs(f) for _, f in hist[int(0.8 * len(hist)):]]
+        if (max(tail) - min(tail)) / max(tail) > 0.02:
+            out["flags"].append("load still rising at the end of loading: collapse may not be reached")
+    consistent = abs(claimed - q_fe) <= 0.03 * q_fe
+    if not consistent:
+        out["flags"].append("reported q_ult differs from the model's response")
+    if err <= FOOT_FULL:
+        s = 1.0
+    elif err >= FOOT_ZERO:
+        s = 0.0
+    else:
+        s = (FOOT_ZERO - err) / (FOOT_ZERO - FOOT_FULL)
+    s *= 1.0 if consistent else 0.5
+    out.update(q_fe=q_fe, rel_error=err, claimed=claimed, reward=float(s))
+    return out
+
+
+MAKERS = {"thick-cylinder": make_thick_cylinder, "circular-hole": make_circular_hole,
+          "strip-footing": make_strip_footing}
 
 
 def make_t0(seed: int) -> FeaTask:
-    kind = ["thick-cylinder", "circular-hole"][seed % 2]
+    kind = ["thick-cylinder", "circular-hole", "strip-footing"][seed % 3]
     return MAKERS[kind](seed)

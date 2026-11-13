@@ -118,3 +118,48 @@ def test_inflated_claim_halves_score(cyl, tmp_path):
         v["value"] *= 1.2
     res = verify_t0(cyl.spec, cyl.meta, ans, tmp_path)
     assert res["reward"] == pytest.approx(0.5)
+
+
+# --- plastic: strip footing (Prandtl) -------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def foot():
+    from geogym.fea.problems import make_strip_footing
+    return make_strip_footing(0)
+
+
+@pytest.mark.slow
+def test_footing_oracle(foot, tmp_path):
+    ans = run(tmp_path, foot.oracle_model)
+    r = verify_t0(foot.spec, foot.meta, ans, tmp_path)
+    assert r["reward"] == pytest.approx(1.0), r
+    assert r["rel_error"] < 0.03
+
+
+@pytest.mark.slow
+def test_footing_volumetric_locking_fails(foot, tmp_path):
+    """Plain 4-node quads lock under incompressible plastic flow and overpredict q_ult."""
+    script = foot.oracle_model.replace(
+        'ops.element("bbarQuad", e, tag(i, j), tag(i + 1, j), tag(i + 1, j + 1), tag(i, j + 1), 1.0, 1)',
+        'ops.element("quad", e, tag(i, j), tag(i + 1, j), tag(i + 1, j + 1), tag(i, j + 1), 1.0, "PlaneStrain", 1)')
+    assert script != foot.oracle_model
+    ans = run(tmp_path, script)
+    r = verify_t0(foot.spec, foot.meta, ans, tmp_path)
+    assert r["reward"] == 0.0 and r["q_fe"] > 1.10 * r["q_exact"]
+
+
+@pytest.mark.slow
+def test_footing_insufficient_settlement(foot, tmp_path):
+    script = foot.oracle_model.replace("delta = max(0.03, 25.0 * su / E) * B", "delta = 0.1 * su / E * B")
+    assert script != foot.oracle_model
+    ans = run(tmp_path, script)
+    r = verify_t0(foot.spec, foot.meta, ans, tmp_path)
+    assert r["reward"] == 0.0
+
+
+def test_footing_wrong_width_is_rejected(foot, tmp_path):
+    ans = {"footing_nodes": [1, 2], "half_model": False, "q_ult": 100.0}
+    run(tmp_path, foot.oracle_model, ans)
+    r = verify_t0(foot.spec, foot.meta, ans, tmp_path)
+    assert r["reward"] == 0.0

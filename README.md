@@ -4,12 +4,13 @@ Simulation-based RL environments for **agentic geotechnical engineering**. LLM a
 design, and back-analyze slopes the way a geotechnical engineer at a numerical-modeling consultancy
 does, and **independent verifiers validated against published benchmarks** grade the work.
 
-Design notes: [`docs/design.md`](docs/design.md) · verifier validation: [`docs/validation.md`](docs/validation.md)
+Datasheet (rewards, validation, negative controls, limits): [`docs/datasheet.md`](docs/datasheet.md) · design: [`docs/design.md`](docs/design.md) · verifier validation: [`docs/validation.md`](docs/validation.md)
 
 ## Task families
 
 | Family | The agent must | The verifier |
 |---|---|---|
+| **T0 FEA modeling** | build an OpenSeesPy finite-element model (thick cylinder, circular opening, strip footing bearing capacity) | replays only the agent's model definition, solves it itself, and compares with Lamé / Kirsch / Prandtl closed-form solutions |
 | **T1 stability check** | find the critical circular slip surface and its factor of safety for a described site | re-analyzes the reported surface; scores criticality and whether the claimed FoS matches the surface |
 | **T2 slope design** | regrade an unstable slope (cut only, protected crest road) to reach a target FoS with minimum excavation | checks constraints, re-runs the critical-surface search on the new ground, scores feasibility × excavation efficiency × honesty of the claimed FoS |
 | **T3 back-analysis** | back-calculate the strength mobilized in an observed failure (scarp, toe, inclinometer, piezometers; lab peak strength is a trap) and predict the FoS after drainage | checks fit to the observed failure, location of the predicted critical surface, and the prediction against the hidden true slope |
@@ -41,7 +42,7 @@ python -m venv .venv
 .venv/Scripts/python -m pip install -e ".[dev]"   # Windows (.venv/bin/python on Linux/macOS)
 pytest -m "not slow"                              # fast tests; `pytest` runs the benchmark searches too
 
-python scripts/build_tasks.py --t1 20 --t2 10 --t3 5 --out build/tasks   # export Harbor tasks
+python scripts/build_tasks.py --t0 30 --t1 20 --t2 10 --t3 5 --out build/tasks   # export Harbor tasks
 python scripts/run_verifier_local.py build/tasks/t1-00000 --oracle      # grade locally, no Docker
 harbor run -p build/tasks -a claude-code -m <model>                      # run an agent with Harbor
 ```
