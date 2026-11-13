@@ -1,9 +1,8 @@
 # geotech-gym
 
-RL environments and a benchmark for **agentic geotechnical engineering**. An LLM agent works the way a
-geotechnical engineer at a numerical-modeling consultancy does — reading a site description, building
-the analysis model, checking stability, designing a remediation, back-analyzing a failure — and an
-**independent, validated verifier** scores the result.
+Simulation-based RL environments for **agentic geotechnical engineering**. LLM agents analyze,
+design, and back-analyze slopes the way a geotechnical engineer at a numerical-modeling consultancy
+does, and **independent verifiers validated against published benchmarks** grade the work.
 
 Design notes: [`docs/design.md`](docs/design.md) · verifier validation: [`docs/validation.md`](docs/validation.md)
 
