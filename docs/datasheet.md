@@ -23,7 +23,10 @@ the same task. Seed ranges are disjoint across families. A train/test split is a
 - **Interface.** Harbor task directories. The agent gets `instruction.md` and `/app/site.json`
   (T1–T3) and works in a Python 3.12 container with NumPy, SciPy, Matplotlib and OpenSeesPy, or, for
   T0-A, in the official Code_Aster image (`simvia/code_aster`, Code_Aster 17.4), or, for T0-F, in
-  the ESI OpenFOAM image (`opencfd/openfoam-default`, v2412). Network: PyPI only.
+  the ESI OpenFOAM image (`opencfd/openfoam-default`, v2412). Network, as Harbor phase policies:
+  open while the environment starts and the agent harness is installed; while the agent works,
+  PyPI plus the model's inference endpoint only; none for the verifier. Checked from inside the
+  agent phase: pypi.org reachable, example.com and github.com blocked.
 - **Isolation.** The verifier runs in a separate sandbox and receives only the declared artifacts
   (`/app/answer.json`, plus the model files for T0: `/app/model.py`, `/app/model.comm` and the
   mesh, or the case directory `/app/case`). Hidden values (true parameters, reference FoS) live only in `tests/task.json`.

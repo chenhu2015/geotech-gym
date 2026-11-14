@@ -127,14 +127,18 @@ family = "{task.family}"
 
 [agent]
 timeout_sec = 3600.0
+# Applies while the agent works, not during agent setup. Harbor adds the model's inference endpoint.
+network_mode = "allowlist"
+allowed_hosts = ["pypi.org", "files.pythonhosted.org"]
 
 [verifier]
 timeout_sec = 900.0
 environment_mode = "separate"
+network_mode = "no-network"
 
 [environment]
-network_mode = "allowlist"
-allowed_hosts = ["pypi.org", "files.pythonhosted.org"]
+# Open only while the environment starts and the agent harness is installed.
+network_mode = "public"
 cpus = 2
 memory_mb = 4096
 """
