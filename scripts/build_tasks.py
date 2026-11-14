@@ -1,6 +1,6 @@
 """Generate task instances and export them as Harbor task directories.
 
-    python scripts/build_tasks.py --t0 20 --t1 20 --t2 10 --t3 5 --out build/tasks
+    python scripts/build_tasks.py --t0 20 --t0a 4 --t0f 2 --t1 20 --t2 10 --t3 5 --out build/tasks
 """
 
 from __future__ import annotations
@@ -11,13 +11,17 @@ import time
 from pathlib import Path
 
 from geogym.harbor import export
+from geogym.aster.problems import make_t0_aster
 from geogym.fea.problems import make_t0
+from geogym.foam.problems import make_t0_foam
 from geogym.tasks import make_t1, make_t2, make_t3
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--t0", type=int, default=10)
+    ap.add_argument("--t0", type=int, default=10, help="FEA tasks, OpenSeesPy")
+    ap.add_argument("--t0a", type=int, default=0, help="FEA tasks, Code_Aster")
+    ap.add_argument("--t0f", type=int, default=0, help="FEA tasks, OpenFOAM")
     ap.add_argument("--t1", type=int, default=10)
     ap.add_argument("--t2", type=int, default=5)
     ap.add_argument("--t3", type=int, default=3)
@@ -26,7 +30,9 @@ def main() -> None:
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     index = []
-    for maker, n in ((make_t0, args.t0), (make_t1, args.t1), (make_t2, args.t2), (make_t3, args.t3)):
+    makers = ((make_t0, args.t0), (make_t0_aster, args.t0a), (make_t0_foam, args.t0f),
+              (make_t1, args.t1), (make_t2, args.t2), (make_t3, args.t3))
+    for maker, n in makers:
         for i in range(n):
             t0 = time.time()
             task = maker(args.seed0 + i)

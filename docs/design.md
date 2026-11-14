@@ -59,8 +59,12 @@ design file. The same tasks run as an eval (fixed set) or as RL environments (ge
 
 - Limit equilibrium (Bishop simplified, Spencer) with a slip-surface search — written here in NumPy, so the
   verifier is small, transparent, and testable.
-- FEM for T4: an open-source package (candidates: scikit-fem, OpenSeesPy) with Mohr–Coulomb / Drucker–Prager
-  plasticity and strength reduction.
+- Established open-source engineering codes, each in its own container image, for the modeling tasks:
+  OpenSeesPy (finite elements, Python API), Code_Aster (finite elements, command files) and OpenFOAM
+  (finite volumes, case dictionaries). The same verifier pattern applies to each: accept only the parts
+  of the agent's input that define the model, re-run it with the verifier's own settings, and compare
+  with an analytical or validated reference. Solvers are never installed on the host.
+- FEM for T4: Mohr–Coulomb / Drucker–Prager plasticity with strength reduction, in one of the codes above.
 
 ## Milestones
 

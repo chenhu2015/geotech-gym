@@ -465,8 +465,19 @@ def _t0():
     return make_t0, verify_t0
 
 
+def _t0_aster():
+    from .aster.problems import make_t0_aster, verify_t0_aster
+    return make_t0_aster, verify_t0_aster
+
+
+def _t0_foam():
+    from .foam.problems import make_t0_foam, verify_t0_foam
+    return make_t0_foam, verify_t0_foam
+
+
 FAMILIES = {"t1-check": (make_t1, verify_t1), "t2-design": (make_t2, verify_t2),
-            "t3-backanalysis": (make_t3, verify_t3), "t0-fea": _t0()}
+            "t3-backanalysis": (make_t3, verify_t3), "t0-fea": _t0(), "t0-aster": _t0_aster(),
+            "t0-foam": _t0_foam()}
 
 
 def dump(task: Task) -> str:

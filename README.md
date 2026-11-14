@@ -11,6 +11,8 @@ Datasheet (rewards, validation, negative controls, limits): [`docs/datasheet.md`
 | Family | The agent must | The verifier |
 |---|---|---|
 | **T0 FEA modeling** | build an OpenSeesPy finite-element model (thick cylinder, circular opening, strip footing bearing capacity) | replays only the agent's model definition, solves it itself, and compares with Lamé / Kirsch / Prandtl closed-form solutions |
+| **T0-A FEA modeling, Code_Aster** | write a Code_Aster command file and mesh for the thick cylinder and the circular opening | checks the command file against a whitelist of model-defining commands, re-runs it, and compares with Lamé / Kirsch |
+| **T0-F stress analysis, OpenFOAM** | set up a `solidDisplacementFoam` case (blockMesh) for the circular opening | rejects dictionaries that can run code, re-runs the case, and compares with Kirsch |
 | **T1 stability check** | find the critical circular slip surface and its factor of safety for a described site | re-analyzes the reported surface; scores criticality and whether the claimed FoS matches the surface |
 | **T2 slope design** | regrade an unstable slope (cut only, protected crest road) to reach a target FoS with minimum excavation | checks constraints, re-runs the critical-surface search on the new ground, scores feasibility × excavation efficiency × honesty of the claimed FoS |
 | **T3 back-analysis** | back-calculate the strength mobilized in an observed failure (scarp, toe, inclinometer, piezometers; lab peak strength is a trap) and predict the FoS after drainage | checks fit to the observed failure, location of the predicted critical surface, and the prediction against the hidden true slope |
@@ -37,15 +39,29 @@ Validated against published benchmark problems that Itasca uses to verify FLAC3D
 
 ## Running
 
+The solvers (OpenSeesPy, Code_Aster, OpenFOAM) run in containers; the host only needs Python with NumPy and
+SciPy for the limit-equilibrium families. Docker or rootless Podman both work.
+
 ```bash
 python -m venv .venv
-.venv/Scripts/python -m pip install -e ".[dev]"   # Windows (.venv/bin/python on Linux/macOS)
-pytest -m "not slow"                              # fast tests; `pytest` runs the benchmark searches too
+.venv/bin/python -m pip install -e ".[dev]"   # .venv/Scripts/python on Windows
+pytest -m "not slow"                          # host tests; solver tests are skipped without the solver
 
-python scripts/build_tasks.py --t0 30 --t1 20 --t2 10 --t3 5 --out build/tasks   # export Harbor tasks
-python scripts/run_verifier_local.py build/tasks/t1-00000 --oracle      # grade locally, no Docker
-harbor run -p build/tasks -a claude-code -m <model>                      # run an agent with Harbor
+# full test suite, including the OpenSeesPy and Code_Aster verifiers, in containers
+podman build -t geogym-dev -f docker/geogym.Dockerfile .
+podman run --rm -v "$PWD":/work:z geogym-dev pytest
+podman build -t geogym-aster-dev -f docker/aster-dev.Dockerfile docker
+podman run --rm -v "$PWD":/work:z geogym-aster-dev bash -c \
+  '. /opt/activate.sh; export PYTHONPATH=/work/src:/opt/pylib:$PYTHONPATH; python3 -m pytest tests/test_aster.py'
+podman build -t geogym-foam-dev -f docker/foam-dev.Dockerfile docker
+podman run --rm -v "$PWD":/work:z geogym-foam-dev python3 -m pytest tests/test_foam.py
+
+python scripts/build_tasks.py --t0 30 --t0a 4 --t0f 2 --t1 20 --t2 10 --t3 5 --out build/tasks   # export Harbor tasks
+python scripts/run_task.py build/tasks/t0a-cyl-00000 --oracle   # solve + grade in two containers
+harbor run -p build/tasks -a claude-code -m <model>              # run an agent with Harbor
 ```
 
 Each exported task is a Harbor task directory (`task.toml`, `instruction.md`, `environment/`, `tests/`,
-`solution/`). The verifier runs in a separate sandbox that receives only `/app/answer.json`.
+`solution/`). The verifier runs in a separate sandbox that receives only the declared artifacts
+(`/app/answer.json` and, for T0, the model files). `docker/podman-sandbox.sh` confines rootless
+Podman to one directory on a shared machine, so that everything it creates can be removed in one step.

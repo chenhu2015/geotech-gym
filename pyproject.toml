@@ -8,9 +8,12 @@ version = "0.0.1"
 description = "RL environments and a benchmark for agentic geotechnical engineering"
 requires-python = ">=3.11"
 # numpy pinned to 2.2.x: on this Windows machine Smart App Control blocks numpy 2.5 random DLLs.
-dependencies = ["numpy>=2.0,<2.3", "scipy>=1.13", "openseespy>=3.8"]
+dependencies = ["numpy>=2.0,<2.3", "scipy>=1.13"]
 
 [project.optional-dependencies]
+# Solvers (OpenSeesPy, ...) are meant to run in containers; see docker/. `fea` installs OpenSeesPy
+# directly for environments that are themselves containers.
+fea = ["openseespy>=3.8"]
 dev = ["pytest>=8", "matplotlib>=3.9"]
 
 [tool.setuptools.packages.find]

@@ -7,6 +7,9 @@ import sys
 import numpy as np
 import pytest
 
+# The FEA verifier runs OpenSeesPy in subprocesses; run these tests in the docker/ image.
+pytest.importorskip("openseespy.opensees", reason="OpenSeesPy not installed (run in docker/geogym.Dockerfile)")
+
 from geogym.fea import analytic
 from geogym.fea.problems import _oracle_annulus, make_circular_hole, make_thick_cylinder, verify_t0
 
