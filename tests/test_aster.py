@@ -53,6 +53,28 @@ def test_whitelist_rejects(snippet, reason):
     assert problems and any(reason in p for p in problems), problems
 
 
+def test_whitelist_accepts_calc_champ_in_place():
+    """The usual post-processing idiom adds stress fields to resu and leaves DEPL alone."""
+    deck = GOOD.replace(", **{}", "").replace(
+        "FIN()", "resu = CALC_CHAMP(reuse=resu, RESULTAT=resu, CONTRAINTE=('SIGM_ELNO',))\nFIN()")
+    assert check_deck(deck) == []
+
+
+@pytest.mark.parametrize("snippet", [
+    "resu = CALC_CHAMP(RESULTAT=resu, CONTRAINTE=('SIGM_ELNO',))\n",          # new result, not in place
+    "other = MECA_STATIQUE(MODELE=model, CHAM_MATER=fmat, EXCIT=_F(CHARGE=load))\n"
+    "resu = CALC_CHAMP(reuse=resu, RESULTAT=other, CONTRAINTE=('SIGM_ELNO',))\n",
+])
+def test_whitelist_rejects_calc_champ_replacing_resu(snippet):
+    problems = check_deck(GOOD.replace(", **{}", "") + snippet)
+    assert any("resu must be assigned only" in p for p in problems), problems
+
+
+def test_whitelist_calc_champ_alone_is_not_a_result():
+    deck = "DEBUT()\nresu = CALC_CHAMP(reuse=resu, RESULTAT=resu)\nFIN()\n"
+    assert any("no variable named resu" in p for p in check_deck(deck))
+
+
 def test_whitelist_requires_resu():
     assert any("no variable named resu" in p for p in check_deck("DEBUT()\nFIN()\n"))
 
@@ -95,6 +117,16 @@ def test_oracle_scores_one(fixture, request):
     r = verify_t0_aster(task.spec, task.meta, ans, APP)
     assert r["reward"] == pytest.approx(1.0), r
     assert all(q["rel_error"] < 0.005 for q in r["quantities"].values())
+
+
+@needs_aster
+def test_calc_champ_in_place_scores_one(hole):
+    ans = _solve(hole)
+    comm = APP / "model.comm"
+    comm.write_text(comm.read_text().replace(
+        "FIN()", "resu = CALC_CHAMP(reuse=resu, RESULTAT=resu, CONTRAINTE=('SIGM_ELNO',))\nFIN()"))
+    r = verify_t0_aster(hole.spec, hole.meta, ans, APP)
+    assert r["reward"] == pytest.approx(1.0), r
 
 
 @needs_aster

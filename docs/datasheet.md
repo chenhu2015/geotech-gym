@@ -23,10 +23,17 @@ the same task. Seed ranges are disjoint across families. A train/test split is a
 - **Interface.** Harbor task directories. The agent gets `instruction.md` and `/app/site.json`
   (T1–T3) and works in a Python 3.12 container with NumPy, SciPy, Matplotlib and OpenSeesPy, or, for
   T0-A, in the official Code_Aster image (`simvia/code_aster`, Code_Aster 17.4), or, for T0-F, in
-  the ESI OpenFOAM image (`opencfd/openfoam-default`, v2412). Network, as Harbor phase policies:
-  open while the environment starts and the agent harness is installed; while the agent works,
-  PyPI plus the model's inference endpoint only; none for the verifier. Checked from inside the
-  agent phase: pypi.org reachable, example.com and github.com blocked.
+  the ESI OpenFOAM image (`opencfd/openfoam-default`, v2412). Base images are pinned by digest and
+  Python packages by version; every instruction ends with an *Environment* section listing exactly
+  this software.
+- **Network.** Harbor phase policies: open while the environment starts and the agent harness is
+  installed; while the agent works, only the model's inference endpoint (no package index, so the
+  agent cannot add software and runs are reproducible); none for the verifier. Probed from the agent
+  phase without a model endpoint allowed: pypi.org, example.com, github.com and api.anthropic.com
+  are all unreachable.
+- **Stated grading.** Every instruction describes the deliverable, the constraints the verifier
+  enforces, and how the score is computed (tolerances and weights), so that a correct, honest
+  solution is never penalized for an unstated rule.
 - **Isolation.** The verifier runs in a separate sandbox and receives only the declared artifacts
   (`/app/answer.json`, plus the model files for T0: `/app/model.py`, `/app/model.comm` and the
   mesh, or the case directory `/app/case`). Hidden values (true parameters, reference FoS) live only in `tests/task.json`.
@@ -200,6 +207,19 @@ unconservative: using it gives FoS 1.5–2.0 on the observed failure and scores 
 
 See `validation.md`: within 0.4–1.2% of published Morgenstern–Price, Bishop and Spencer results for
 the benchmark slopes Itasca uses to verify FLAC3D.
+
+## Evaluation suites
+
+| Suite | Contents | Build |
+|---|---|---|
+| MechGym-Eval v0.1 | 27 tasks: 3 instances of each of the 9 task types (seeds from 0) | `scripts/build_tasks.py --suite eval-v0.1` |
+| Held-out | same composition, seeds from a private, disjoint range | not published |
+
+A suite is a fixed list of seeds, so it rebuilds identically. Training sets should use other seeds.
+Because tasks are generated, a model trained on the public suite can be checked against the
+held-out suite of the same composition: a large gap between the two indicates contamination.
+Results are to be reported per task type and overall, as the mean reward over at least 5 trials per
+task with a 95% confidence interval, together with the oracle (1.0) and do-nothing (0.0) baselines.
 
 ## Known limitations
 

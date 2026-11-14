@@ -120,6 +120,10 @@ The full geometry (ground surface, unit boundaries, phreatic surface, model base
 in the same coordinates as `site.json`. Your answer will be checked by independently re-analyzing
 the slip surface you report, so the factor of safety must be the one your surface actually gives,
 and it should be the minimum over admissible circular surfaces.
+
+**Grading.** Half the score: how close the re-analyzed factor of safety of your surface is to the
+minimum (full credit within 2%, none beyond 10%). The other half: how close your reported `fos` is
+to the minimum (same scale), counted only if it matches the re-analysis of your surface within 2%.
 """
     meta = {"fos_reference": float(res.fos)}
     reference = {"fos": res.fos, "slip_surface": _to_site_circle(prof, res.surface)}
@@ -241,6 +245,7 @@ The full geometry is in `/app/site.json` (units: m, kPa, kN/m3). Coordinates are
 - A road on the crest occupies x from {protected[0]:.2f} to {protected[1]:.2f} m; the ground there
   must not change.
 - The new ground line must start and end at the same points as the existing one.
+- The new ground may not go below the model base.
 - After regrading, the phreatic surface is assumed to follow the lower of its measured trace and
   the new ground surface.
 
@@ -256,6 +261,11 @@ surface of the regraded slope.
 `surface` is the regraded ground line (x strictly increasing) in the coordinates of `site.json`;
 `fos` is the factor of safety you computed for it. Your design will be re-analyzed independently.
 Excavation volume is measured as the cross-sectional area removed (m2 per metre of slope).
+
+**Grading.** A design that breaks a constraint, or whose re-analyzed critical factor of safety is
+below the requirement, scores 0. Otherwise the score is the excavation area of a reference design
+divided by yours (at most 1), halved if your reported `fos` differs from the re-analysis by more
+than 3%.
 """
     meta = {"target": target, "protected": protected, "reference_area": float(ref_area),
             "fos_existing": float(f0)}
@@ -413,6 +423,12 @@ phi' = {phi_lab} degrees (these are the values stored in `site.json`).
 
 Your parameters will be checked against the observed failure, and your prediction against the
 behaviour of the real slope.
+
+**Grading.** 30%: with your parameters, the surface that actually failed (through the scarp, the
+toe and the inclinometer shear zone) has a factor of safety of 1.0 (full credit within 0.02). 30%:
+the critical circular surface your parameters give runs from the observed scarp to the observed toe
+and has a factor of safety of 1.0. 40%: your `fos_drained` compared with the factor of safety of the
+real slope with the drains (full credit within 3%, none beyond 15%).
 """
     circ = failure.surface
     meta = {"c_true": c_true, "phi_true": phi_true, "fos_drained_true": float(f_drained),

@@ -27,7 +27,8 @@ RULES = """**Modeling rules.**
   `DEFI_FICHIER(ACTION="ASSOCIER", UNITE=20, FICHIER="/app/mesh.mail", TYPE="ASCII")` and
   `LIRE_MAILLAGE(FORMAT="ASTER", UNITE=20)` (or `FORMAT="MED"`). No mesh generator is installed;
   write the mesh file yourself (e.g. with a Python script). Units: kN, m, kPa.
-- Name the final result **`resu`** and compute it with `MECA_STATIQUE` (or `STAT_NON_LINE`).
+- Name the final result **`resu`** and compute it with `MECA_STATIQUE` (or `STAT_NON_LINE`). Adding
+  derived fields in place with `resu = CALC_CHAMP(reuse=resu, RESULTAT=resu, ...)` is allowed.
 - The grader re-runs your command file in a clean environment and reads the displacement of
   `resu` at the mesh nodes located at the points listed below, so your mesh must have a node at
   each of those points. The command file may only use Code_Aster commands that define and solve

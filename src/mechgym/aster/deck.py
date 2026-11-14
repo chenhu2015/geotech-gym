@@ -84,6 +84,8 @@ def check_deck(source: str, app_dir: str = "/app") -> list[str]:
                 for n in ast.walk(t):
                     if isinstance(n, ast.Name) and n.id == "resu":
                         v = node.value
+                        if _is_resu_update(v):
+                            continue   # resu = CALC_CHAMP(reuse=resu, RESULTAT=resu, ...) adds fields only
                         resu_sources.append(v.func.id if isinstance(v, ast.Call) and isinstance(v.func, ast.Name)
                                             else type(v).__name__)
         if isinstance(node, ast.AugAssign) and isinstance(node.target, ast.Name) and node.target.id == "resu":
@@ -93,6 +95,18 @@ def check_deck(source: str, app_dir: str = "/app") -> list[str]:
     elif any(s not in SOLVERS for s in resu_sources):
         problems.append(f"resu must be assigned only from {sorted(SOLVERS)}, got {resu_sources}")
     return problems
+
+
+def _is_resu_update(v: ast.AST) -> bool:
+    """The standard in-place post-processing idiom: CALC_CHAMP(reuse=resu, RESULTAT=resu, ...).
+
+    CALC_CHAMP derives fields (stresses, strains, reactions) from the result; it does not write DEPL,
+    which is what the grader reads.
+    """
+    if not (isinstance(v, ast.Call) and isinstance(v.func, ast.Name) and v.func.id == "CALC_CHAMP"):
+        return False
+    kws = {kw.arg: kw.value for kw in v.keywords}
+    return all(isinstance(kws.get(k), ast.Name) and kws[k].id == "resu" for k in ("reuse", "RESULTAT"))
 
 
 def _check_formula(call: ast.Call) -> list[str]:

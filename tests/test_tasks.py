@@ -112,3 +112,14 @@ def test_exported_task_files_carry_canary(tmp_path, t1):
         assert CANARY in (d / rel).read_text(), rel
     for rel in ("tests/test.sh", "solution/solve.sh"):
         assert (d / rel).read_text().startswith("#!/bin/"), rel   # shebang stays on line 1
+
+
+def test_exported_task_states_environment_and_network(tmp_path, t1):
+    from mechgym.harbor import export
+    d = export(t1, tmp_path)
+    instruction = (d / "instruction.md").read_text()
+    assert "## Environment" in instruction and "no internet access" in instruction
+    toml = (d / "task.toml").read_text()
+    agent = toml.split("[agent]")[1].split("[verifier]")[0]
+    assert 'network_mode = "allowlist"' in agent and "allowed_hosts = []" in agent
+    assert "@sha256:" in (d / "environment/Dockerfile").read_text()
