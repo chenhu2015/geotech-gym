@@ -1,8 +1,15 @@
-# geotech-gym
+# MechGym
 
-Simulation-based RL environments for **agentic geotechnical engineering**. LLM agents analyze,
-design, and back-analyze slopes the way a geotechnical engineer at a numerical-modeling consultancy
-does, and **independent verifiers validated against published benchmarks** grade the work.
+**Verifiable agentic environments for computational mechanics.**
+
+LLM agents do the work of an engineer at a numerical-modeling consultancy: build finite-element and
+finite-volume models in real open-source solvers (OpenSees, Code_Aster, OpenFOAM), run analyses, iterate
+on a design, and back-analyze field observations. **Independent verifiers, validated against closed-form
+solutions and published benchmark problems,** grade the work; the reward never comes from numbers the
+agent computed itself.
+
+The first domain is **geotechnics** (slopes, openings, foundations). The task interface, sandboxing and
+verifier pattern are domain-independent, and further areas of solid and fluid mechanics are planned.
 
 Datasheet (rewards, validation, negative controls, limits): [`docs/datasheet.md`](docs/datasheet.md) · design: [`docs/design.md`](docs/design.md) · verifier validation: [`docs/validation.md`](docs/validation.md)
 
@@ -20,9 +27,9 @@ Datasheet (rewards, validation, negative controls, limits): [`docs/datasheet.md`
 Sites are generated procedurally (geometry, 1–3 soil units, phreatic surface, either orientation).
 Grading never uses numbers the agent computed: every answer is re-analyzed with the verifier's own model.
 
-## Verifier
+## Limit-equilibrium verifier (T1–T3)
 
-A limit-equilibrium engine written for this project (`src/geogym/le.py`):
+A limit-equilibrium engine written for this project (`src/mechgym/le.py`):
 
 - Bishop's simplified method; general limit equilibrium (Spencer, Morgenstern–Price)
 - circular and non-circular slip surfaces, with critical-surface search
@@ -48,13 +55,13 @@ python -m venv .venv
 pytest -m "not slow"                          # host tests; solver tests are skipped without the solver
 
 # full test suite, including the OpenSeesPy and Code_Aster verifiers, in containers
-podman build -t geogym-dev -f docker/geogym.Dockerfile .
-podman run --rm -v "$PWD":/work:z geogym-dev pytest
-podman build -t geogym-aster-dev -f docker/aster-dev.Dockerfile docker
-podman run --rm -v "$PWD":/work:z geogym-aster-dev bash -c \
+podman build -t mechgym-dev -f docker/mechgym.Dockerfile .
+podman run --rm -v "$PWD":/work:z mechgym-dev pytest
+podman build -t mechgym-aster-dev -f docker/aster-dev.Dockerfile docker
+podman run --rm -v "$PWD":/work:z mechgym-aster-dev bash -c \
   '. /opt/activate.sh; export PYTHONPATH=/work/src:/opt/pylib:$PYTHONPATH; python3 -m pytest tests/test_aster.py'
-podman build -t geogym-foam-dev -f docker/foam-dev.Dockerfile docker
-podman run --rm -v "$PWD":/work:z geogym-foam-dev python3 -m pytest tests/test_foam.py
+podman build -t mechgym-foam-dev -f docker/foam-dev.Dockerfile docker
+podman run --rm -v "$PWD":/work:z mechgym-foam-dev python3 -m pytest tests/test_foam.py
 
 python scripts/build_tasks.py --t0 30 --t0a 4 --t0f 2 --t1 20 --t2 10 --t3 5 --out build/tasks   # export Harbor tasks
 python scripts/run_task.py build/tasks/t0a-cyl-00000 --oracle   # solve + grade in two containers

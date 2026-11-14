@@ -1,4 +1,4 @@
-# geotech-gym datasheet
+# MechGym datasheet
 
 What a lab needs to decide whether to train or evaluate on these environments: what each task asks,
 how the reward is computed, how the verifier was validated, which exploits are closed, and what it
@@ -80,7 +80,7 @@ generators and tolerances (1% / 3%), solved with Code_Aster instead of OpenSeesP
 `/app/mesh.med`); no mesh generator is installed, so the mesh is written by the agent's own code.
 
 **How grading works.** A `.comm` file is Python, so the verifier first parses it and accepts only a
-restricted subset (`src/geogym/aster/deck.py`): assignments, loops, conditionals and arithmetic;
+restricted subset (`src/mechgym/aster/deck.py`): assignments, loops, conditionals and arithmetic;
 calls to Code_Aster commands that define and solve a model (`LIRE_MAILLAGE`, `AFFE_MODELE`,
 `DEFI_MATERIAU`, `AFFE_CHAR_MECA`, `MECA_STATIQUE`, `STAT_NON_LINE`, ...) and to a few builtins; no
 imports, no attribute access, no names starting with `_` except `_F`, file paths only under `/app`,

@@ -1,7 +1,7 @@
 # Development / test image: the verifier library plus OpenSeesPy, used to run the full test suite.
 #
-#   podman build -t geogym-dev -f docker/geogym.Dockerfile .
-#   podman run --rm -v "$PWD":/work:z geogym-dev pytest            # or: docker run ...
+#   podman build -t mechgym-dev -f docker/mechgym.Dockerfile .
+#   podman run --rm -v "$PWD":/work:z mechgym-dev pytest            # or: docker run ...
 #
 # Simulation software is only ever installed in containers, never on the host.
 FROM python:3.12-slim

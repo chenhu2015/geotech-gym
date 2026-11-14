@@ -1,9 +1,9 @@
-# geotech-gym — design
+# MechGym — design
 
 ## Goal
 
-An RL environment and benchmark for **agentic geotechnical engineering**: an LLM agent works the way a
-geotechnical engineer at a numerical-modeling consultancy does (build a ground model, choose parameters,
+RL environments for **agentic computational mechanics**, starting with geotechnical engineering: an LLM
+agent works the way an engineer at a numerical-modeling consultancy does (build a ground model, choose parameters,
 run analyses, iterate on a design, back-analyze monitoring data), and an **independent, validated verifier**
 scores the result.
 

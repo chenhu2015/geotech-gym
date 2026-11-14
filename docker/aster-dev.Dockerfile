@@ -1,7 +1,7 @@
 # Test image for the Code_Aster task family (official Code_Aster image + pytest + a writable /app).
 #
-#   podman build -t geogym-aster-dev -f docker/aster-dev.Dockerfile docker
-#   podman run --rm -v "$PWD":/work:z geogym-aster-dev bash -c \
+#   podman build -t mechgym-aster-dev -f docker/aster-dev.Dockerfile docker
+#   podman run --rm -v "$PWD":/work:z mechgym-aster-dev bash -c \
 #       '. /opt/activate.sh; export PYTHONPATH=/work/src:/opt/pylib:$PYTHONPATH; python3 -m pytest -p no:cacheprovider tests/test_aster.py'
 #
 # (/opt/activate.sh sets PYTHONPATH for Code_Aster; extend it after sourcing.)

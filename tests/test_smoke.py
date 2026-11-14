@@ -1,5 +1,5 @@
-import geogym
+import mechgym
 
 
 def test_import():
-    assert geogym.__version__
+    assert mechgym.__version__

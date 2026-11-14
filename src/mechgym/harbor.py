@@ -6,7 +6,7 @@ Layout (Harbor task format, schema 1.4):
       task.toml
       instruction.md
       environment/Dockerfile, environment/site.json   -> agent sandbox, site.json at /app
-      tests/test.sh, tests/verify.py, tests/task.json, tests/geogym/   -> verifier only
+      tests/test.sh, tests/verify.py, tests/task.json, tests/mechgym/   -> verifier only
       solution/solve.sh                                -> oracle answer
 
 The verifier runs in a separate sandbox (``environment_mode = "separate"``) that only receives the
@@ -74,12 +74,12 @@ import os
 import sys
 from pathlib import Path
 
-TESTS = Path(os.environ.get("GEOGYM_TESTS_DIR", "/tests"))
-APP = Path(os.environ.get("GEOGYM_APP_DIR", "/app"))
-LOGS = Path(os.environ.get("GEOGYM_LOGS_DIR", "/logs/verifier"))
+TESTS = Path(os.environ.get("MECHGYM_TESTS_DIR", "/tests"))
+APP = Path(os.environ.get("MECHGYM_APP_DIR", "/app"))
+LOGS = Path(os.environ.get("MECHGYM_LOGS_DIR", "/logs/verifier"))
 sys.path.insert(0, str(TESTS))
 
-from geogym.tasks import FAMILIES  # noqa: E402
+from mechgym.tasks import FAMILIES  # noqa: E402
 
 task = json.loads((TESTS / "task.json").read_text())
 _, verify = FAMILIES[task["family"]]
@@ -104,7 +104,7 @@ def _task_toml(task) -> str:
 artifacts = {artifacts}
 
 [task]
-name = "geotech-gym/{task.task_id}"
+name = "mechgym/{task.task_id}"
 
 [metadata]
 category = "geotechnical-engineering"
@@ -147,7 +147,7 @@ def export(task, out_root: Path) -> Path:
     (d / "tests" / "task.json").write_text(json.dumps(
         {"family": task.family, "task_id": task.task_id, "spec": task.spec, "meta": task.meta},
         indent=1, default=float))
-    shutil.copytree(PKG_DIR, d / "tests" / "geogym",
+    shutil.copytree(PKG_DIR, d / "tests" / "mechgym",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "harbor.py"))
 
     oracle_model = getattr(task, "oracle_model", "")

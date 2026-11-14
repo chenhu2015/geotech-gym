@@ -8,10 +8,10 @@ import numpy as np
 import pytest
 
 # The FEA verifier runs OpenSeesPy in subprocesses; run these tests in the docker/ image.
-pytest.importorskip("openseespy.opensees", reason="OpenSeesPy not installed (run in docker/geogym.Dockerfile)")
+pytest.importorskip("openseespy.opensees", reason="OpenSeesPy not installed (run in docker/mechgym.Dockerfile)")
 
-from geogym.fea import analytic
-from geogym.fea.problems import _oracle_annulus, make_circular_hole, make_thick_cylinder, verify_t0
+from mechgym.fea import analytic
+from mechgym.fea.problems import _oracle_annulus, make_circular_hole, make_thick_cylinder, verify_t0
 
 
 def run(tmp_path, script: str, answer: dict | None = None) -> dict:
@@ -128,7 +128,7 @@ def test_inflated_claim_halves_score(cyl, tmp_path):
 
 @pytest.fixture(scope="module")
 def foot():
-    from geogym.fea.problems import make_strip_footing
+    from mechgym.fea.problems import make_strip_footing
     return make_strip_footing(0)
 
 

@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import pytest
 
-from geogym.tasks import make_t1, make_t2, verify_t1, verify_t2
+from mechgym.tasks import make_t1, make_t2, verify_t1, verify_t2
 
 
 @pytest.fixture(scope="module")
@@ -83,13 +83,13 @@ def test_t2_wasteful_design_scores_below_one(t2):
 
 @pytest.fixture(scope="module")
 def t3():
-    from geogym.tasks import make_t3
+    from mechgym.tasks import make_t3
     return make_t3(0)
 
 
 @pytest.mark.slow
 def test_t3_oracle_and_lab_values(t3):
-    from geogym.tasks import verify_t3
+    from mechgym.tasks import verify_t3
     assert verify_t3(t3.spec, t3.meta, t3.reference)["reward"] == pytest.approx(1.0)
     m = t3.spec["layers"][0]["material"]
     naive = {"c": m["c"], "phi_deg": m["phi_deg"], "fos_drained": 2.0}

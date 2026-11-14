@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from geogym.aster.deck import check_deck
-from geogym.aster.problems import make_aster_cylinder, make_aster_hole, verify_t0_aster
+from mechgym.aster.deck import check_deck
+from mechgym.aster.problems import make_aster_cylinder, make_aster_hole, verify_t0_aster
 
 GOOD = """DEBUT()
 DEFI_FICHIER(ACTION="ASSOCIER", UNITE=20, FICHIER="/app/mesh.mail", TYPE="ASCII")

@@ -2,7 +2,7 @@
 # Confine rootless Podman to one directory, so everything this project creates on a shared
 # host (images, containers, layers) can be listed and removed in one step.
 #
-#   docker/podman-sandbox.sh setup [DIR]     # default DIR=$HOME/geogym; writes DIR/pm wrapper
+#   docker/podman-sandbox.sh setup [DIR]     # default DIR=$HOME/mechgym; writes DIR/pm wrapper
 #   docker/podman-sandbox.sh status [DIR]
 #   docker/podman-sandbox.sh clean [DIR]     # dry run: shows what would be removed
 #   docker/podman-sandbox.sh clean [DIR] --yes
@@ -11,7 +11,7 @@
 # packages, no services, no changes outside DIR (Podman's runtime state lives in /run/user/$UID).
 set -eu
 cmd=${1:-status}
-dir=${2:-$HOME/geogym}
+dir=${2:-$HOME/mechgym}
 
 case "$cmd" in
 setup)
@@ -20,7 +20,7 @@ setup)
 [storage]
 driver = "overlay"
 graphroot = "$dir/containers/storage"
-runroot = "/run/user/$(id -u)/geogym-containers"
+runroot = "/run/user/$(id -u)/mechgym-containers"
 EOF
     cat > "$dir/pm" <<EOF
 #!/bin/sh

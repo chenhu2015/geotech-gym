@@ -2,7 +2,7 @@
 
 The agent writes a command file ``/app/model.comm`` and a mesh file (``/app/mesh.mail``, Code_Aster's
 native ASCII format, or ``/app/mesh.med``). The verifier checks the command file against a whitelist
-(:mod:`geogym.aster.deck`), runs it itself, takes the displacement field of the result ``resu`` at
+(:mod:`mechgym.aster.deck`), runs it itself, takes the displacement field of the result ``resu`` at
 the mesh nodes located at the requested points, and compares it with the analytical solution.
 Numbers in ``answer.json`` only serve the honesty check.
 """

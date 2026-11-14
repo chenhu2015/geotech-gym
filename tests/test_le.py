@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from geogym import cases
-from geogym.le import (
+from mechgym import cases
+from mechgym.le import (
     Circle,
     PolySurface,
     evaluate,
@@ -10,8 +10,8 @@ from geogym.le import (
     search_circular,
     search_noncircular,
 )
-from geogym.materials import HoekBrown, MohrCoulomb
-from geogym.profile import Layer, Polyline, SlopeProfile
+from mechgym.materials import HoekBrown, MohrCoulomb
+from mechgym.profile import Layer, Polyline, SlopeProfile
 
 
 def rel(a, b):

@@ -37,7 +37,7 @@ def sh(cmd: list[str], **kw) -> subprocess.CompletedProcess:
 
 def ensure_image(engine: str, env_dir: Path) -> str:
     digest = hashlib.sha1((env_dir / "Dockerfile").read_bytes()).hexdigest()[:12]
-    tag = f"localhost/geogym-env:{digest}"
+    tag = f"localhost/mechgym-env:{digest}"
     exists = subprocess.run([engine, "image", "inspect", tag], capture_output=True).returncode == 0
     if not exists:
         # Build from a context holding only the Dockerfile and site.json.
@@ -47,7 +47,7 @@ def ensure_image(engine: str, env_dir: Path) -> str:
 
 def container(engine: str, image: str, cfg: dict, cmd: list[str]) -> str:
     env = cfg.get("environment", {})
-    name = f"geogym-{uuid.uuid4().hex[:10]}"
+    name = f"mechgym-{uuid.uuid4().hex[:10]}"
     sh([engine, "create", "--name", name, "--network", "none",
         "--cpus", str(env.get("cpus", 2)), "--memory", f"{env.get('memory_mb', 4096)}m",
         image, *cmd], stdout=subprocess.DEVNULL)

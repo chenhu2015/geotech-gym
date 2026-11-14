@@ -11,9 +11,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from geogym.foam.case import write_kirsch_case
-from geogym.foam.problems import check_case, make_foam_hole, run_case, verify_t0_foam
-from geogym.foam.reader import patch_vectors
+from mechgym.foam.case import write_kirsch_case
+from mechgym.foam.problems import check_case, make_foam_hole, run_case, verify_t0_foam
+from mechgym.foam.reader import patch_vectors
 
 HAVE_FOAM = Path("/usr/lib/openfoam/openfoam2412/etc/bashrc").exists()
 needs_foam = pytest.mark.skipif(not HAVE_FOAM, reason="OpenFOAM not installed")

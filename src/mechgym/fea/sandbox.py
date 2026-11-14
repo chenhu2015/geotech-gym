@@ -138,8 +138,8 @@ _REPLAY_BOOT = textwrap.dedent(r'''
 
 def record(script: Path, workdir: Path, timeout: float = 600.0) -> dict:
     workdir = Path(workdir)
-    boot = workdir / "_geogym_record.py"
-    out = workdir / "_geogym_calls.json"
+    boot = workdir / "_mechgym_record.py"
+    out = workdir / "_mechgym_calls.json"
     boot.write_text(_RECORD_BOOT)
     try:
         subprocess.run([sys.executable, str(boot), str(script), str(out)], cwd=workdir,
@@ -162,9 +162,9 @@ def replay(recorded: dict, query_nodes: list[int], workdir: Path, timeout: float
     summed reaction of ``reaction_nodes`` in direction ``dof`` after every step."""
     mode = mode or {"type": "linear"}
     workdir = Path(workdir)
-    rec_path = workdir / "_geogym_rec.json"
-    out = workdir / "_geogym_replay.json"
-    boot = workdir / "_geogym_replay.py"
+    rec_path = workdir / "_mechgym_rec.json"
+    out = workdir / "_mechgym_replay.json"
+    boot = workdir / "_mechgym_replay.py"
     rec_path.write_text(json.dumps(recorded))
     boot.write_text(_REPLAY_BOOT)
     try:

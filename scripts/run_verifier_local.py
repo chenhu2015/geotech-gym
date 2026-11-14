@@ -34,8 +34,8 @@ def main() -> None:
             (app / "answer.json").write_text(body)
         elif args.answer:
             (app / "answer.json").write_text(args.answer.read_text())
-        env = dict(os.environ, GEOGYM_TESTS_DIR=str(args.task_dir / "tests"),
-                   GEOGYM_APP_DIR=str(app), GEOGYM_LOGS_DIR=str(logs))
+        env = dict(os.environ, MECHGYM_TESTS_DIR=str(args.task_dir / "tests"),
+                   MECHGYM_APP_DIR=str(app), MECHGYM_LOGS_DIR=str(logs))
         subprocess.run([sys.executable, str(args.task_dir / "tests" / "verify.py")], env=env, check=True,
                        stdout=subprocess.DEVNULL)
         print(json.dumps(json.loads((logs / "details.json").read_text()), indent=1))

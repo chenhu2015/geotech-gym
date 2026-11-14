@@ -10,11 +10,11 @@ import json
 import time
 from pathlib import Path
 
-from geogym.harbor import export
-from geogym.aster.problems import make_t0_aster
-from geogym.fea.problems import make_t0
-from geogym.foam.problems import make_t0_foam
-from geogym.tasks import make_t1, make_t2, make_t3
+from mechgym.harbor import export
+from mechgym.aster.problems import make_t0_aster
+from mechgym.fea.problems import make_t0
+from mechgym.foam.problems import make_t0_foam
+from mechgym.tasks import make_t1, make_t2, make_t3
 
 
 def main() -> None:

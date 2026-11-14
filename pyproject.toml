@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "geotech-gym"
+name = "mechgym"
 version = "0.0.1"
-description = "RL environments and a benchmark for agentic geotechnical engineering"
+description = "Verifiable agentic environments for computational mechanics"
 requires-python = ">=3.11"
 # numpy pinned to 2.2.x: on this Windows machine Smart App Control blocks numpy 2.5 random DLLs.
 dependencies = ["numpy>=2.0,<2.3", "scipy>=1.13"]
