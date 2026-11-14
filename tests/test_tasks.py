@@ -102,3 +102,13 @@ def test_t3_answer_is_hidden_from_agent(t3):
     import json
     text = json.dumps(t3.spec) + t3.instruction
     assert str(t3.meta["c_true"]) not in text
+
+
+def test_exported_task_files_carry_canary(tmp_path, t1):
+    from mechgym.harbor import CANARY, export
+    d = export(t1, tmp_path)
+    for rel in ("task.toml", "environment/Dockerfile", "tests/test.sh", "tests/verify.py",
+                "tests/task.json", "solution/solve.sh"):
+        assert CANARY in (d / rel).read_text(), rel
+    for rel in ("tests/test.sh", "solution/solve.sh"):
+        assert (d / rel).read_text().startswith("#!/bin/"), rel   # shebang stays on line 1

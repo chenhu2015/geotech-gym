@@ -65,7 +65,8 @@ podman run --rm -v "$PWD":/work:z mechgym-foam-dev python3 -m pytest tests/test_
 
 python scripts/build_tasks.py --t0 30 --t0a 4 --t0f 2 --t1 20 --t2 10 --t3 5 --out build/tasks   # export Harbor tasks
 python scripts/run_task.py build/tasks/t0a-cyl-00000 --oracle   # solve + grade in two containers
-harbor run -p build/tasks -a claude-code -m <model>              # run an agent with Harbor
+harbor run -p build/tasks -a oracle -e podman                    # Harbor with rootless Podman (or -e docker)
+harbor run -p build/tasks -a claude-code -m <model> -e podman    # run an agent with Harbor
 ```
 
 Each exported task is a Harbor task directory (`task.toml`, `instruction.md`, `environment/`, `tests/`,
